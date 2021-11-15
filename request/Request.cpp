@@ -28,9 +28,55 @@ Request::Request(std::string &req) {
 
 void Request::parseNext(std::string &req) {
 	std::string str;
+	std::string key, value;
+	std::pair<std::string, std::string> pair;
+	size_t i;
 
+	i = req.find_first_of('\n');
+	if (i == std::string::npos) {
+		this->returnReq = PARSE_ERROR;
+		return;
+	}
+	while ((str = getNextLine(req, i)) != "NULL"
+		   && this->returnReq != PARSE_ERR_GNL) {
+		pair = headerCreatePair(str);
+		if (pair.first == "NULL" | pair.second == "NULL") {
+			this->returnReq = PARSE_ERR_PAIR;
+			return;
+		}
+	}
 }
 
+std::pair<std::string, std::string>
+Request::headerCreatePair(std::string &str) {
+	size_t posSplitter = str.find_first_of(':');
+	size_t startPos = str.find_first_not_of('\n');
+	size_t secPos;
+
+	if (posSplitter == std::string::npos | startPos == std::string::npos) {
+		this->returnReq = PARSE_ERR_PAIR;
+		return std::pair<std::string, std::string>("NULL", "NULL");
+	}
+
+	std::string key = str.substr(startPos, posSplitter - 1);
+	std::string val = str.substr(posSplitter + 1);
+
+	secPos = val.find_first_not_of(' ');
+	val = str.substr(posSplitter + secPos + 1);
+
+	return std::pair<std::string, std::string>(key, val);
+}
+
+std::string Request::getNextLine(std::string &str, size_t &i) {
+	size_t endPos = str.find_first_of('\n', i + 1);
+	if (endPos == std::string::npos) {
+		this->returnReq = PARSE_ERR_GNL;
+		return "NULL";
+	}
+	std::string currentLine = str.substr(i, endPos - i);
+	i = endPos;
+	return currentLine;
+}
 
 void Request::parsePath(std::string &path) {
 	size_t pt;
